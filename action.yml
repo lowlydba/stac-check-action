@@ -152,13 +152,22 @@ runs:
       run: |
         echo "## stac-check Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        cat $RUNNER_TEMP/stac-check-output.txt >> $GITHUB_STEP_SUMMARY
+        if grep -q "Validation Summary" $RUNNER_TEMP/stac-check-output.txt 2>/dev/null; then
+          sed -n '/Validation Summary/,$p' $RUNNER_TEMP/stac-check-output.txt >> $GITHUB_STEP_SUMMARY
+        else
+          cat $RUNNER_TEMP/stac-check-output.txt >> $GITHUB_STEP_SUMMARY
+        fi
 
     - name: Post PR comment
       if: ${{ inputs.comment-pr == 'true' && github.event_name == 'pull_request' }}
       shell: bash
       run: |
-        gh pr comment ${{ github.event.number }} --body-file $RUNNER_TEMP/stac-check-output.txt
+        if grep -q "Validation Summary" $RUNNER_TEMP/stac-check-output.txt 2>/dev/null; then
+          sed -n '/Validation Summary/,$p' $RUNNER_TEMP/stac-check-output.txt > $RUNNER_TEMP/stac-check-summary.txt
+          gh pr comment ${{ github.event.number }} --body-file $RUNNER_TEMP/stac-check-summary.txt
+        else
+          gh pr comment ${{ github.event.number }} --body-file $RUNNER_TEMP/stac-check-output.txt
+        fi
       env:
         GH_TOKEN: ${{ github.token }}
 
