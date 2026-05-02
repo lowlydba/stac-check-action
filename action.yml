@@ -1,6 +1,8 @@
 name: 'stac-check-action'
 description: 'Run stac-check on local STAC files'
-author: 'your-org'
+author: 'lowlydba'
+icon: 'globe'
+color: 'green'
 
 inputs:
   stac-check-version:
