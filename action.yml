@@ -1,0 +1,150 @@
+name: 'stac-check-action'
+description: 'Run stac-check on local STAC files'
+author: 'your-org'
+
+inputs:
+  stac-check-version:
+    description: 'Exact stac-check PyPI version (e.g., v1.14.0)'
+    required: true
+  file:
+    description: 'Path to local STAC file to validate'
+    required: true
+  recursive:
+    description: 'Recursively validate related local STAC objects'
+    required: false
+    default: 'false'
+  max-depth:
+    description: 'Maximum recursion depth (requires recursive: true)'
+    required: false
+    default: ''
+  validate-assets:
+    description: 'Validate assets locally (no network requests)'
+    required: false
+    default: 'false'
+  pydantic:
+    description: 'Use stac-pydantic for enhanced validation'
+    required: false
+    default: 'false'
+  verbose:
+    description: 'Show verbose error messages'
+    required: false
+    default: 'false'
+  fast:
+    description: 'Fast validation with FastJSONSchema, no geometry/linting'
+    required: false
+    default: 'false'
+  fast-linting:
+    description: 'Fast validation with linting, no geometry checks'
+    required: false
+    default: 'false'
+  output-file:
+    description: 'Save CLI output to file (separate from job summary)'
+    required: false
+    default: ''
+  job-summary:
+    description: 'Write validation results to GitHub job summary'
+    required: false
+    default: 'true'
+  comment-pr:
+    description: 'Post validation summary as PR comment (requires pull-requests: write)'
+    required: false
+    default: 'false'
+  extra-args:
+    description: 'Additional stac-check CLI arguments (appended last)'
+    required: false
+    default: ''
+  config:
+    description: 'Path to config file or inline YAML (sets STAC_CHECK_CONFIG env var)'
+    required: false
+    default: ''
+
+outputs:
+  exit-code:
+    description: 'Exit code from stac-check (0=valid, non-zero=issues)'
+    value: ${{ steps.run.outputs.exit-code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install stac-check
+      shell: bash
+      run: pip install stac-check==${{ inputs.stac-check-version }}
+
+    - name: Build CLI arguments and run stac-check
+      id: run
+      shell: bash
+      run: |
+        ARGS=""
+
+        if [ "${{ inputs.recursive }}" = "true" ]; then
+          ARGS="$ARGS --recursive"
+          if [ -n "${{ inputs.max-depth }}" ]; then
+            ARGS="$ARGS --max-depth ${{ inputs.max-depth }}"
+          fi
+        fi
+
+        if [ "${{ inputs.validate-assets }}" = "true" ]; then
+          ARGS="$ARGS --assets --no-assets-urls"
+        fi
+
+        if [ "${{ inputs.pydantic }}" = "true" ]; then
+          ARGS="$ARGS --pydantic"
+        fi
+
+        if [ "${{ inputs.verbose }}" = "true" ]; then
+          ARGS="$ARGS --verbose"
+        fi
+
+        if [ "${{ inputs.fast }}" = "true" ]; then
+          ARGS="$ARGS --fast"
+        elif [ "${{ inputs.fast-linting }}" = "true" ]; then
+          ARGS="$ARGS --fast-linting"
+        fi
+
+        if [ -n "${{ inputs.output-file }}" ]; then
+          ARGS="$ARGS --output ${{ inputs.output-file }}"
+        fi
+
+        ARGS="$ARGS ${{ inputs.extra-args }}"
+        ARGS="$ARGS ${{ inputs.file }}"
+
+        # Handle config input
+        if [ -n "${{ inputs.config }}" ]; then
+          if [ -f "${{ inputs.config }}" ]; then
+            export STAC_CHECK_CONFIG="${{ inputs.config }}"
+          elif echo "${{ inputs.config }}" | grep -q $'\n'; then
+            echo "${{ inputs.config }}" > $RUNNER_TEMP/stac-check-config.yml
+            export STAC_CHECK_CONFIG="$RUNNER_TEMP/stac-check-config.yml"
+          else
+            echo "::warning::config input is neither a file nor valid inline YAML"
+          fi
+        fi
+
+        stac-check $ARGS > $RUNNER_TEMP/stac-check-output.txt 2>&1
+        EXIT_CODE=$?
+        echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+        cat $RUNNER_TEMP/stac-check-output.txt
+
+    - name: Write to job summary
+      if: ${{ inputs.job-summary == 'true' }}
+      shell: bash
+      run: |
+        echo "## stac-check Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        cat $RUNNER_TEMP/stac-check-output.txt >> $GITHUB_STEP_SUMMARY
+
+    - name: Post PR comment
+      if: ${{ inputs.comment-pr == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      run: |
+        gh pr comment ${{ github.event.number }} --body-file $RUNNER_TEMP/stac-check-output.txt
+      env:
+        GH_TOKEN: ${{ github.token }}
+
+    - name: Fail on issues
+      if: steps.run.outputs.exit-code != '0'
+      shell: bash
+      run: |
+        echo "stac-check found validation issues (exit code: ${{ steps.run.outputs.exit-code }})"
+        exit ${{ steps.run.outputs.exit-code }}

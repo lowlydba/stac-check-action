@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install stac-check
+        run: pip install stac-check==v1.14.0
+
+      - name: Create test STAC item
+        run: |
+          cat > /tmp/test-item.json << 'EOF'
+          {
+            "type": "Feature",
+            "stac_version": "1.0.0",
+            "id": "test-item",
+            "geometry": {"type": "Point", "coordinates": [0, 0]},
+            "properties": {"datetime": "2024-01-01T00:00:00Z"},
+            "links": [],
+            "assets": {}
+          }
+          EOF
+
+      - name: Run stac-check
+        run: stac-check /tmp/test-item.json
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate action.yml
+        run: |
+          python3 -c "
+          import yaml
+          with open('action.yml') as f:
+              data = yaml.safe_load(f)
+          print('action.yml valid')
+          "
+
+      - name: Check LF line endings
+        run: |
+          ! grep -r $'\r' --include='*.yml' --include='*.md' . || (echo 'CRLF detected'; exit 1)
