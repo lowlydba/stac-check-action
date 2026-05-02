@@ -2,21 +2,38 @@
 
 [![CI](https://github.com/lowlydba/stac-check-action/actions/workflows/ci.yml/badge.svg)](https://github.com/lowlydba/stac-check-action/actions/workflows/ci.yml) [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/lowlydba/stac-check-action/ci.yml)](https://github.com/lowlydba/stac-check-action/actions/workflows/ci.yml) [![immutable release ruleset](https://img.shields.io/badge/immutable%20tags-active-green?logo=github)](https://github.com/lowlydba/stac-check-action/rules) [![stac-check-action](https://img.shields.io/badge/stac--check--action-🎯-blue?style=flat)](https://github.com/lowlydba/stac-check-action)
 
-A lightweight composite GitHub Action that runs [`stac-check`](https://github.com/stac-utils/stac-check) against local STAC files — validates, lints, and checks best practices for STAC items, collections, and catalogs.
+A lightweight composite GitHub Action that runs [`stac-check`](https://github.com/stac-utils/stac-check) against local STAC files to validate, lint, and check best practices for STAC items, collections, and catalogs.
 
-- 🔒 dependency-free (composite, no external actions)
+- 🔒 action dependency-free (composite, no external actions)
 - ⚛️ small size (runner-native tools only)
-- 💰 saves CI minutes (fast validation modes)
 - 🌎 local-only (no network access required)
-- 🎯 pairs seamlessly with [`actions/checkout`](https://github.com/actions/checkout)
+
+### Why local-only?
+
+STAC catalogs often reference remote assets and links via URLs. By default, this action only validates local files checked out in your repository and never makes network requests to resolve remote URLs. This keeps CI runs fast, deterministic, and secure:
+
+- No waiting on external servers or CDNs to respond
+- Validation won't fail because of transient network issues or remote servers being down
+- No risk of unexpected outbound requests from your CI runner
+- Works on air-gapped or restricted runners without internet access
+
+Asset validation (`validate-assets: true`) also only checks local file paths, using `--no-assets-urls` under the hood to skip URL-based assets. If you need to validate remote URLs, pass `--assets` directly via `extra-args` to opt in.
 
 ---
 
-- [Usage](#usage)
-- [Inputs](#inputs)
-- [Example: PR Comment](#example-pr-comment)
-- [Example: Inline Config](#example-inline-config)
-- [Show Your Support](#show-your-support)
+- [stac-check-action](#stac-check-action)
+    - [Why local-only?](#why-local-only)
+  - [Usage](#usage)
+  - [Inputs](#inputs)
+  - [Outputs](#outputs)
+  - [Example: PR Comment](#example-pr-comment)
+  - [Example: Inline Config](#example-inline-config)
+  - [Requirements](#requirements)
+  - [Security](#security)
+  - [Show Your Support](#show-your-support)
+  - [Full Specification](#full-specification)
+  - [About](#about)
+  - [License](#license)
 
 ## Usage
 
@@ -53,141 +70,30 @@ jobs:
           validate-assets: true
 ```
 
-Tip
-
-SemVer tags (e.g. `v1.0.0`) and major tags (e.g. `v1`) are immutable, enforced via [repository rulesets](https://github.com/lowlydba/stac-check-action/rules). For maximum supply chain security, [pin to a full commit SHA](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions#using-third-party-actions) rather than a tag.
-
 ## Inputs
 
-Input
-
-Description
-
-Allowed Values
-
-Default
-
-`stac-check-version` **(required)**
-
-Exact version (e.g. `v1.14.0`) or `latest` for newest release
-
-`string`
-
-—
-
-`file` **(required)**
-
-Path to local STAC file to validate
-
-`string`
-
-—
-
-`recursive`
-
-Recursively validate related local STAC objects
-
-`'true'` or `'false'`
-
-`'false'`
-
-`max-depth`
-
-Maximum recursion depth (requires `recursive: true`)
-
-`integer`
-
-—
-
-`validate-assets`
-
-Validate assets locally (no network requests)
-
-`'true'` or `'false'`
-
-`'false'`
-
-`pydantic`
-
-Use stac-pydantic for enhanced validation
-
-`'true'` or `'false'`
-
-`'false'`
-
-`verbose`
-
-Show verbose error messages
-
-`'true'` or `'false'`
-
-`'false'`
-
-`fast`
-
-Fast validation with FastJSONSchema, no geometry/linting
-
-`'true'` or `'false'`
-
-`'false'`
-
-`fast-linting`
-
-Fast validation with linting, no geometry checks
-
-`'true'` or `'false'`
-
-`'false'`
-
-`output-file`
-
-Save CLI output to file (separate from job summary)
-
-`string`
-
-—
-
-`config`
-
-Path to config file or inline YAML (sets `STAC_CHECK_CONFIG`)
-
-`string`
-
-—
-
-`job-summary`
-
-Write results to GitHub job summary
-
-`'true'` or `'false'`
-
-`'true'`
-
-`comment-pr`
-
-Post results as PR comment (requires `pull-requests: write`)
-
-`'true'` or `'false'`
-
-`'false'`
-
-`extra-args`
-
-Additional CLI arguments (appended last)
-
-`string`
-
-—
+| Input | Description | Allowed Values | Default |
+|-------|-------------|----------------|---------|
+| `stac-check-version` **(required)** | Exact version (e.g. `v1.14.0`) or `latest` for newest release | `string` | — |
+| `file` **(required)** | Path to local STAC file to validate | `string` | — |
+| `recursive` | Recursively validate related local STAC objects | `'true'` or `'false'` | `'false'` |
+| `max-depth` | Maximum recursion depth (requires `recursive: true`) | `integer` | — |
+| `validate-assets` | Validate assets locally (no network requests) | `'true'` or `'false'` | `'false'` |
+| `pydantic` | Use stac-pydantic for enhanced validation | `'true'` or `'false'` | `'false'` |
+| `verbose` | Show verbose error messages | `'true'` or `'false'` | `'false'` |
+| `fast` | Fast validation with FastJSONSchema, no geometry/linting | `'true'` or `'false'` | `'false'` |
+| `fast-linting` | Fast validation with linting, no geometry checks | `'true'` or `'false'` | `'false'` |
+| `output-file` | Save CLI output to file (separate from job summary) | `string` | — |
+| `config` | Path to config file or inline YAML (sets `STAC_CHECK_CONFIG`) | `string` | — |
+| `job-summary` | Write results to GitHub job summary | `'true'` or `'false'` | `'true'` |
+| `comment-pr` | Post results as PR comment (requires `pull-requests: write`) | `'true'` or `'false'` | `'false'` |
+| `extra-args` | Additional CLI arguments (appended last) | `string` | — |
 
 ## Outputs
 
-Name
-
-Description
-
-`exit-code`
-
-Exit code from stac-check (0=valid, non-zero=issues)
+| Name | Description |
+|------|-------------|
+| `exit-code` | Exit code from stac-check (0=valid, non-zero=issues) |
 
 ## Example: PR Comment
 
