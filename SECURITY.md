@@ -2,12 +2,15 @@
 
 ## Supported Versions
 
-Only the latest minor release of `stac-check-action` receives security updates. Pin to a SHA in production (see [README](./README.md#usage)).
+Only the **latest released version on the current major** receives security
+updates. Older majors and older patch releases within the current major do
+not receive backports. Pin to a SHA in production (see [README](./README.md#pinning)).
 
 | Version | Supported |
 |---------|-----------|
-| Latest minor (e.g., `v1.x`) | ✅ |
-| Older majors | ❌ |
+| Latest release on the current major (e.g., the newest `v1.y.z`) | ✅ |
+| Older `v1.y.z` releases | ❌ |
+| Older majors (e.g., `v0.x`) | ❌ |
 
 ## Reporting a Vulnerability
 

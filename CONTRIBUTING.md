@@ -6,7 +6,7 @@ Thanks for considering a contribution.
 
 - Read [SPEC.md](./SPEC.md) before proposing changes — design principles are intentional (composite-only, zero external action deps, local-only by default).
 - Discuss substantial changes in an issue before opening a PR.
-- All PRs must pass CI (matrix tests, lint, zizmor, actionlint, e2e).
+- All PRs must pass CI (matrix tests, lint, zizmor, actionlint, BATS unit tests, e2e).
 - Follow existing code style (LF line endings, 2-space YAML indent).
 
 ## Local Setup
@@ -31,6 +31,12 @@ Run the action's logic against a local STAC file:
 stac-check ./path/to/item.json
 ```
 
+Run the BATS unit tests for `scripts/run.sh` (requires Node/npm; pinned in CI):
+
+```bash
+npx -y bats@1.13.0 tests/
+```
+
 Run zizmor (requires [installation](https://docs.zizmor.sh/installation/)):
 
 ```bash
@@ -50,7 +56,7 @@ actionlint
 - [ ] CHANGELOG.md updated under `[Unreleased]`
 - [ ] SPEC.md updated if behavior changes
 - [ ] README.md updated if user-facing
-- [ ] CI green (zizmor + actionlint + matrix tests + e2e)
+- [ ] CI green (zizmor + actionlint + matrix tests + BATS + e2e)
 - [ ] Commits follow [Conventional Commits](https://www.conventionalcommits.org/) format
 
 ## Commit Message Format

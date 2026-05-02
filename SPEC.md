@@ -57,7 +57,8 @@ Defined in `action.yml` (composite).
    - `file` (positional, always last)
 
 **Config handling:**
-- If `config` input is a valid filepath: set `STAC_CHECK_CONFIG=/path/to/file`
+- If `config` input is an existing filepath: set `STAC_CHECK_CONFIG=/path/to/file`
+- Else if value looks path-like (no newlines, no `:`, and either ends in `.yml`/`.yaml` or contains `/`): error out — likely a typo'd path rather than inline YAML
 - Otherwise (treated as inline YAML, single- or multi-line): write to a unique file under `$RUNNER_TEMP`, set `STAC_CHECK_CONFIG` to that path
 - If empty: no action
 
@@ -78,6 +79,9 @@ Defined in `action.yml` (composite).
 
 6. **Fail on issues**:
    - Exits with `stac-check` exit code if non-zero.
+   - Exits 1 if `valid` is `false` even when `stac-check` exit code is 0
+     (recursive mode often returns 0 despite failures; output markers are
+     parsed as the authoritative signal).
    - Use `continue-on-error: true` in workflow to override.
 
 ### Permissions
@@ -88,7 +92,16 @@ permissions:
 ```
 
 ### Failure Behavior
-Action fails (sets step exit code) when `stac-check` returns non-zero exit code, indicating validation issues or errors. Use `continue-on-error: true` in workflow if validation failures should not block the workflow.
+The action fails the step in either of two cases:
+
+1. `stac-check` returned a non-zero exit code (re-raised verbatim).
+2. `stac-check` returned 0 but the captured output contained failure markers
+   (`Recursive validation has failed!`, `Failed: N/M` with `N >= 1`,
+   `Passed: False`, or `Valid: False`). This compensates for upstream
+   recursive-mode behavior where exit codes do not reliably reflect failures.
+
+Use `continue-on-error: true` if you want validation failures to surface as
+outputs (`exit-code`, `valid`) without blocking the workflow.
 
 ## Security Considerations
 - No external action dependencies to vet (composite action with runner-native tools only).

@@ -217,6 +217,20 @@ teardown() {
   grep -q "check_geometry" "$CONFIG_PATH"
 }
 
+@test "config that looks like a missing .yml path — exits 1" {
+  export IN_CONFIG="does-not-exist.yml"
+  run bash "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"looks like a file path but does not exist"* ]]
+}
+
+@test "config that looks like a missing path with slashes — exits 1" {
+  export IN_CONFIG=".github/missing-config.yaml"
+  run bash "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"looks like a file path but does not exist"* ]]
+}
+
 # ---------------------------------------------------------------------------
 # valid parsing (output marker detection)
 # ---------------------------------------------------------------------------

@@ -53,10 +53,18 @@ fi
 
 ARGS+=("${IN_FILE:?IN_FILE is required}")
 
-# Handle config: file path OR inline YAML
+# Handle config: existing file path OR inline YAML
+# Heuristic to avoid silently treating a typo'd path as YAML:
+# if the value looks path-like (no newlines, no ':', and ends in .yml/.yaml
+# or contains a path separator), require the file to exist.
 if [ -n "${IN_CONFIG:-}" ]; then
   if [ -f "$IN_CONFIG" ]; then
     export STAC_CHECK_CONFIG="$IN_CONFIG"
+  elif [[ "$IN_CONFIG" != *$'\n'* && "$IN_CONFIG" != *:* ]] \
+      && { [[ "$IN_CONFIG" == *.yml || "$IN_CONFIG" == *.yaml ]] \
+        || [[ "$IN_CONFIG" == */* ]]; }; then
+    echo "::error::config input looks like a file path but does not exist: $IN_CONFIG"
+    exit 1
   else
     CONFIG_PATH="$(mktemp "$RUNNER_TEMP/stac-check-config.XXXXXX.yml")"
     printf '%s' "$IN_CONFIG" > "$CONFIG_PATH"
