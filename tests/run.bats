@@ -214,3 +214,71 @@ teardown() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"neither a readable file path nor multiline inline YAML"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# validation-failed parsing (output marker detection)
+# ---------------------------------------------------------------------------
+
+@test "validation-failed=false when output is empty" {
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "validation-failed=false" "$GITHUB_OUTPUT"
+}
+
+@test "validation-failed=false when output looks healthy" {
+  export MOCK_STDOUT="Item Passed: True
+Recursive validation has passed!
+Passed: 5/5"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "validation-failed=false" "$GITHUB_OUTPUT"
+}
+
+@test "validation-failed=true on 'Recursive validation has failed!'" {
+  export MOCK_STDOUT="Recursive validation has failed!"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+}
+
+@test "validation-failed=true on 'Failed: 3/10'" {
+  export MOCK_STDOUT="Validation Summary
+Passed: 7/10
+Failed: 3/10"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+}
+
+@test "validation-failed=false on 'Failed: 0/10' (zero failures)" {
+  export MOCK_STDOUT="Validation Summary
+Passed: 10/10
+Failed: 0/10"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "validation-failed=false" "$GITHUB_OUTPUT"
+}
+
+@test "validation-failed=true on 'Item Passed: False'" {
+  export MOCK_STDOUT="Item Passed: False"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+}
+
+@test "validation-failed=true on 'Valid: False' (fallback display)" {
+  export MOCK_STDOUT="Valid: False
+Schemas checked: ..."
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+}
+
+@test "validation-failed=true even when stac-check exit code is 0" {
+  export MOCK_EXIT_CODE=0
+  export MOCK_STDOUT="Recursive validation has failed!"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  grep -q "exit-code=0"            "$GITHUB_OUTPUT"
+  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+}

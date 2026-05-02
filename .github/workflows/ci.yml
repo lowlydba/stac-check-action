@@ -136,13 +136,18 @@ jobs:
       - name: Verify stac-check detected failures
         shell: bash
         env:
-          E2E_EXIT_CODE: ${{ steps.e2e.outputs.exit-code }}
+          E2E_VALIDATION_FAILED: ${{ steps.e2e.outputs.validation-failed }}
+          E2E_OUTPUT_PATH: ${{ steps.e2e.outputs.output-path }}
         run: |
-          if [ "${E2E_EXIT_CODE}" = "0" ]; then
-            echo "::error::E2E test should have failed (overture STAC is non-conforming)"
+          set -uo pipefail
+          if [ "${E2E_VALIDATION_FAILED}" != "true" ]; then
+            echo "::error::E2E test should have detected failures (overture STAC is non-conforming)"
+            echo "::group::stac-check output"
+            [ -f "${E2E_OUTPUT_PATH}" ] && cat "${E2E_OUTPUT_PATH}" || echo "(output file missing)"
+            echo "::endgroup::"
             exit 1
           fi
-          echo "E2E test correctly detected non-conforming STAC (exit code: ${E2E_EXIT_CODE})"
+          echo "E2E test correctly detected non-conforming STAC (validation-failed=true)"
 
   bats:
     name: BATS Unit Tests

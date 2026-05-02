@@ -78,3 +78,18 @@ set -e
 
 cat "$OUTPUT_PATH"
 echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+# Parse output for explicit failure markers. stac-check's exit code is
+# unreliable in recursive mode (often returns 0 even with failures), so we
+# scan for known failure indicators emitted by display_messages.py.
+#
+# Markers (any one => validation-failed=true):
+#   - "Recursive validation has failed!"   recursive-mode summary banner
+#   - "Failed: N/M" where N >= 1           summary fail count (fast + standard)
+#   - "Passed: False"                      single-item validation status
+#   - "Valid: False"                       fallback display
+VALIDATION_FAILED="false"
+if grep -qE 'Recursive validation has failed!|Failed: [1-9][0-9]*/|Passed: False|Valid: False' "$OUTPUT_PATH"; then
+  VALIDATION_FAILED="true"
+fi
+echo "validation-failed=$VALIDATION_FAILED" >> "$GITHUB_OUTPUT"
