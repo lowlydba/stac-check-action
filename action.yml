@@ -194,10 +194,13 @@ runs:
         GH_TOKEN: ${{ github.token }}
         OUTPUT_PATH: ${{ steps.run.outputs.output-path }}
         PR_NUMBER: ${{ github.event.number }}
+        REPO: ${{ github.repository }}
       run: |
         set -euo pipefail
+        MARKER="<!-- stac-check-action -->"
         BODY_PATH="$RUNNER_TEMP/stac-check-comment.md"
         {
+          echo "$MARKER"
           echo "## stac-check Results"
           echo ""
           echo '```'
@@ -208,7 +211,17 @@ runs:
           fi
           echo '```'
         } > "$BODY_PATH"
-        gh pr comment "$PR_NUMBER" --body-file "$BODY_PATH"
+
+        # Find existing comment with marker
+        COMMENT_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+          --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1)
+
+        if [ -n "$COMMENT_ID" ]; then
+          gh api --method PATCH "repos/${REPO}/issues/comments/${COMMENT_ID}" \
+            --field body="$(cat "$BODY_PATH")"
+        else
+          gh pr comment "$PR_NUMBER" --body-file "$BODY_PATH"
+        fi
 
     - name: Fail on issues
       if: always()

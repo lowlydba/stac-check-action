@@ -1,0 +1,36 @@
+# Security Policy
+
+## Supported Versions
+
+Only the latest minor release of `stac-check-action` receives security updates. Pin to a SHA in production (see [README](./README.md#usage)).
+
+| Version | Supported |
+|---------|-----------|
+| Latest minor (e.g., `v1.x`) | ✅ |
+| Older majors | ❌ |
+
+## Reporting a Vulnerability
+
+**Do not open a public issue for security vulnerabilities.**
+
+Use GitHub's [private vulnerability reporting](https://github.com/lowlydba/stac-check-action/security/advisories/new) to report any security issue. You should receive an acknowledgement within **72 hours**.
+
+Include:
+
+- Affected version (tag or SHA)
+- Reproduction steps or proof-of-concept
+- Impact assessment (confidentiality / integrity / availability)
+- Suggested fix, if any
+
+## Scope
+
+This action is a thin composite wrapper around the upstream [`stac-check`](https://github.com/stac-utils/stac-check) CLI. Vulnerabilities in `stac-check` itself should be reported to the [stac-utils](https://github.com/stac-utils/stac-check/security) project. Report here only issues in the action's:
+
+- Shell argument construction / injection vectors
+- Permission escalation paths
+- Secret exposure
+- Supply chain (action SHA pinning, dependency declarations)
+
+## Disclosure
+
+Coordinated disclosure preferred. Embargo period negotiable based on severity.
