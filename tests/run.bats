@@ -216,69 +216,69 @@ teardown() {
 }
 
 # ---------------------------------------------------------------------------
-# validation-failed parsing (output marker detection)
+# valid parsing (output marker detection)
 # ---------------------------------------------------------------------------
 
-@test "validation-failed=false when output is empty" {
+@test "valid=true when output is empty" {
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "validation-failed=false" "$GITHUB_OUTPUT"
+  grep -q "valid=true" "$GITHUB_OUTPUT"
 }
 
-@test "validation-failed=false when output looks healthy" {
+@test "valid=true when output looks healthy" {
   export MOCK_STDOUT="Item Passed: True
 Recursive validation has passed!
 Passed: 5/5"
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "validation-failed=false" "$GITHUB_OUTPUT"
+  grep -q "valid=true" "$GITHUB_OUTPUT"
 }
 
-@test "validation-failed=true on 'Recursive validation has failed!'" {
+@test "valid=false on 'Recursive validation has failed!'" {
   export MOCK_STDOUT="Recursive validation has failed!"
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+  grep -q "valid=false" "$GITHUB_OUTPUT"
 }
 
-@test "validation-failed=true on 'Failed: 3/10'" {
+@test "valid=false on 'Failed: 3/10'" {
   export MOCK_STDOUT="Validation Summary
 Passed: 7/10
 Failed: 3/10"
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+  grep -q "valid=false" "$GITHUB_OUTPUT"
 }
 
-@test "validation-failed=false on 'Failed: 0/10' (zero failures)" {
+@test "valid=true on 'Failed: 0/10' (zero failures)" {
   export MOCK_STDOUT="Validation Summary
 Passed: 10/10
 Failed: 0/10"
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "validation-failed=false" "$GITHUB_OUTPUT"
+  grep -q "valid=true" "$GITHUB_OUTPUT"
 }
 
-@test "validation-failed=true on 'Item Passed: False'" {
+@test "valid=false on 'Item Passed: False'" {
   export MOCK_STDOUT="Item Passed: False"
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+  grep -q "valid=false" "$GITHUB_OUTPUT"
 }
 
-@test "validation-failed=true on 'Valid: False' (fallback display)" {
+@test "valid=false on 'Valid: False' (fallback display)" {
   export MOCK_STDOUT="Valid: False
 Schemas checked: ..."
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+  grep -q "valid=false" "$GITHUB_OUTPUT"
 }
 
-@test "validation-failed=true even when stac-check exit code is 0" {
+@test "valid=false even when stac-check exit code is 0" {
   export MOCK_EXIT_CODE=0
   export MOCK_STDOUT="Recursive validation has failed!"
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  grep -q "exit-code=0"            "$GITHUB_OUTPUT"
-  grep -q "validation-failed=true" "$GITHUB_OUTPUT"
+  grep -q "exit-code=0" "$GITHUB_OUTPUT"
+  grep -q "valid=false" "$GITHUB_OUTPUT"
 }

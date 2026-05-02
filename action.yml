@@ -71,9 +71,9 @@ outputs:
   output-path:
     description: 'Path to captured stac-check stdout/stderr (always set)'
     value: ${{ steps.run.outputs.output-path }}
-  validation-failed:
-    description: 'true if failure markers were found in stac-check output (more reliable than exit-code)'
-    value: ${{ steps.run.outputs.validation-failed }}
+  valid:
+    description: 'true if stac-check output contained no failure markers'
+    value: ${{ steps.run.outputs.valid }}
 
 runs:
   using: 'composite'
@@ -169,13 +169,13 @@ runs:
       shell: bash
       env:
         EXIT_CODE: ${{ steps.run.outputs.exit-code }}
-        VALIDATION_FAILED: ${{ steps.run.outputs.validation-failed }}
+        VALID: ${{ steps.run.outputs.valid }}
       run: |
         if [ "${EXIT_CODE:-1}" != "0" ]; then
           echo "::error::stac-check exited with code: ${EXIT_CODE:-1}"
           exit "${EXIT_CODE:-1}"
         fi
-        if [ "${VALIDATION_FAILED:-false}" = "true" ]; then
+        if [ "${VALID:-true}" = "false" ]; then
           echo "::error::stac-check reported validation failures (exit-code was 0 but failure markers found in output)"
           exit 1
         fi
