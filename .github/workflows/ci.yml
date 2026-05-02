@@ -146,11 +146,27 @@ jobs:
           fi
           echo "E2E test correctly detected non-conforming STAC (exit code: ${E2E_EXIT_CODE})"
 
+  bats:
+    name: BATS Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install bats-core
+        run: npm install -g bats
+
+      - name: Run BATS tests
+        run: bats tests/
+
   unit-test:
     name: Unit Test
     runs-on: ubuntu-latest
     permissions: {}
-    needs: [test, lint, lint-actions, e2e]
+    needs: [test, lint, lint-actions, e2e, bats]
     if: always()
     steps:
       - uses: lowlydba/are-we-good@7efad05442f92a1203940ca8b79dd4fb930e75d4 # v1.0.2
