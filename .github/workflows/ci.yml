@@ -29,10 +29,12 @@ jobs:
           {
             "type": "Feature",
             "stac_version": "1.0.0",
+            "stac_extensions": [],
             "id": "test-item",
             "geometry": {"type": "Point", "coordinates": [0, 0]},
+            "bbox": [0, 0, 0, 0],
             "properties": {"datetime": "2024-01-01T00:00:00Z"},
-            "links": [],
+            "links": [{"rel": "self", "href": "test-item.json"}],
             "assets": {}
           }
           EOF
