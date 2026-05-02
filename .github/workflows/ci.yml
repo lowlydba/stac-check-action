@@ -139,6 +139,7 @@ jobs:
         env:
           E2E_OUTCOME: ${{ steps.e2e.outcome }}
           E2E_VALID: ${{ steps.e2e.outputs.valid }}
+          E2E_EXIT_CODE: ${{ steps.e2e.outputs.exit-code }}
           E2E_OUTPUT_PATH: ${{ steps.e2e.outputs.log-path }}
         run: |
           set -uo pipefail
@@ -151,13 +152,21 @@ jobs:
             echo "::error::E2E valid output was '${E2E_VALID}', expected 'false' (overture STAC is non-conforming)"
             FAIL=1
           fi
+          # Regression sentinel: stac-check upstream returns exit 0 in recursive
+          # mode even when validation fails. The 'valid' output exists to
+          # compensate for this. If upstream ever fixes it, this assertion will
+          # break and signal we can simplify the workaround.
+          if [ "${E2E_EXIT_CODE}" != "0" ]; then
+            echo "::warning::E2E exit-code was '${E2E_EXIT_CODE}', expected '0'. stac-check may have fixed recursive-mode exit codes — review whether the 'valid' output parser is still needed."
+            FAIL=1
+          fi
           if [ "$FAIL" -ne 0 ]; then
             echo "::group::stac-check output"
             [ -f "${E2E_OUTPUT_PATH}" ] && cat "${E2E_OUTPUT_PATH}" || echo "(output file missing)"
             echo "::endgroup::"
             exit 1
           fi
-          echo "E2E correctly detected non-conforming STAC (outcome=failure, valid=false)"
+          echo "E2E correctly detected non-conforming STAC (outcome=failure, valid=false, exit-code=0)"
 
   bats:
     name: BATS Unit Tests

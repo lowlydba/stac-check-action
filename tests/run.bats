@@ -221,14 +221,36 @@ teardown() {
   export IN_CONFIG="does-not-exist.yml"
   run bash "$SCRIPT"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"looks like a file path but does not exist"* ]]
+  [[ "$output" == *"not an existing file and does not look like inline YAML"* ]]
 }
 
 @test "config that looks like a missing path with slashes — exits 1" {
   export IN_CONFIG=".github/missing-config.yaml"
   run bash "$SCRIPT"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"looks like a file path but does not exist"* ]]
+  [[ "$output" == *"not an existing file and does not look like inline YAML"* ]]
+}
+
+@test "config that's a bare typo with no extension or slash — exits 1" {
+  export IN_CONFIG="config"
+  run bash "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not an existing file and does not look like inline YAML"* ]]
+}
+
+@test "log-path is set even on early exit (e.g. invalid output-file)" {
+  export IN_OUTPUT_FILE="$TEST_TEMP/out.txt"
+  export IN_RECURSIVE="false"
+  run bash "$SCRIPT"
+  [ "$status" -eq 1 ]
+  grep -q "log-path=" "$GITHUB_OUTPUT"
+}
+
+@test "log-path is set even on early exit (e.g. invalid config)" {
+  export IN_CONFIG="missing.yml"
+  run bash "$SCRIPT"
+  [ "$status" -eq 1 ]
+  grep -q "log-path=" "$GITHUB_OUTPUT"
 }
 
 # ---------------------------------------------------------------------------

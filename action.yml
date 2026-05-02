@@ -63,13 +63,13 @@ inputs:
 
 outputs:
   exit-code:
-    description: 'Exit code from stac-check (0=valid, non-zero=issues)'
+    description: 'Raw stac-check CLI exit code. Note: not authoritative for recursive validation — check `valid` instead, since stac-check often returns 0 even when recursive validation fails.'
     value: ${{ steps.run.outputs.exit-code }}
   log-path:
-    description: 'Path to captured stac-check stdout/stderr (always set; unique per invocation)'
+    description: 'Path to captured stac-check stdout/stderr. Set on every successful invocation of the runner (created before input validation, so available even on early-exit errors).'
     value: ${{ steps.run.outputs.log-path }}
   valid:
-    description: 'true if stac-check output contained no failure markers'
+    description: 'Authoritative validation result: `true` if no failure markers were found in the stac-check output, `false` otherwise.'
     value: ${{ steps.run.outputs.valid }}
 
 runs:
@@ -169,10 +169,24 @@ runs:
       env:
         EXIT_CODE: ${{ steps.run.outputs.exit-code }}
         VALID: ${{ steps.run.outputs.valid }}
+        RUN_OUTCOME: ${{ steps.run.outcome }}
       run: |
-        if [ "${EXIT_CODE:-1}" != "0" ]; then
-          echo "::error::stac-check exited with code: ${EXIT_CODE:-1}"
-          exit "${EXIT_CODE:-1}"
+        # If the runner script failed before stac-check executed (input
+        # validation, config parse error, etc), exit-code output is empty.
+        # Surface that as the real error rather than rewriting it as a
+        # phantom 'stac-check exit 1'.
+        if [ -z "${EXIT_CODE}" ]; then
+          if [ "${RUN_OUTCOME}" = "failure" ]; then
+            echo "::error::stac-check-action runner failed before stac-check executed; see prior step output"
+            exit 1
+          fi
+          # Run step succeeded but didn't write exit-code: should not happen.
+          echo "::error::internal: run step produced no exit-code output"
+          exit 1
+        fi
+        if [ "${EXIT_CODE}" != "0" ]; then
+          echo "::error::stac-check exited with code: ${EXIT_CODE}"
+          exit "${EXIT_CODE}"
         fi
         if [ "${VALID:-true}" = "false" ]; then
           echo "::error::stac-check reported validation failures (exit-code was 0 but failure markers found in output)"

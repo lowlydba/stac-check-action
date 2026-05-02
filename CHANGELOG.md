@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - TBD
-
 ### Added
 - Initial release of `stac-check-action`.
 - Composite GitHub Action wrapping [`stac-check`](https://github.com/stac-utils/stac-check).
@@ -26,5 +24,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zizmor + actionlint in CI, dependabot for github-actions ecosystem.
 - BATS unit tests for `scripts/run.sh`.
 
-[Unreleased]: https://github.com/lowlydba/stac-check-action/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/lowlydba/stac-check-action/releases/tag/v1.0.0
+[Unreleased]: https://github.com/lowlydba/stac-check-action/compare/HEAD...HEAD

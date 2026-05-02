@@ -14,6 +14,10 @@ set -euo pipefail
 : "${GITHUB_OUTPUT:=/dev/null}"
 : "${RUNNER_TEMP:=$(mktemp -d)}"
 
+# Create log file FIRST so log-path output is set even on early exits.
+OUTPUT_PATH="$(mktemp "$RUNNER_TEMP/stac-check-output.XXXXXX.txt")"
+echo "log-path=$OUTPUT_PATH" >> "$GITHUB_OUTPUT"
+
 ARGS=()
 
 if [ "${IN_RECURSIVE:-false}" = "true" ]; then
@@ -53,17 +57,15 @@ fi
 
 ARGS+=("${IN_FILE:?IN_FILE is required}")
 
-# Handle config: existing file path OR inline YAML
-# Heuristic to avoid silently treating a typo'd path as YAML:
-# if the value looks path-like (no newlines, no ':', and ends in .yml/.yaml
-# or contains a path separator), require the file to exist.
+# Handle config: existing file path OR inline YAML.
+# Heuristic: anything without a YAML structural marker (':' or newline) cannot
+# be valid YAML, so we treat it as a (likely typo'd) file path and require it
+# to exist. Multi-line or ':'-containing values are written to a temp file.
 if [ -n "${IN_CONFIG:-}" ]; then
   if [ -f "$IN_CONFIG" ]; then
     export STAC_CHECK_CONFIG="$IN_CONFIG"
-  elif [[ "$IN_CONFIG" != *$'\n'* && "$IN_CONFIG" != *:* ]] \
-      && { [[ "$IN_CONFIG" == *.yml || "$IN_CONFIG" == *.yaml ]] \
-        || [[ "$IN_CONFIG" == */* ]]; }; then
-    echo "::error::config input looks like a file path but does not exist: $IN_CONFIG"
+  elif [[ "$IN_CONFIG" != *:* && "$IN_CONFIG" != *$'\n'* ]]; then
+    echo "::error::config input is not an existing file and does not look like inline YAML (no ':' or newline): $IN_CONFIG"
     exit 1
   else
     CONFIG_PATH="$(mktemp "$RUNNER_TEMP/stac-check-config.XXXXXX.yml")"
@@ -71,9 +73,6 @@ if [ -n "${IN_CONFIG:-}" ]; then
     export STAC_CHECK_CONFIG="$CONFIG_PATH"
   fi
 fi
-
-OUTPUT_PATH="$(mktemp "$RUNNER_TEMP/stac-check-output.XXXXXX.txt")"
-echo "log-path=$OUTPUT_PATH" >> "$GITHUB_OUTPUT"
 
 set +e
 stac-check "${ARGS[@]}" > "$OUTPUT_PATH" 2>&1

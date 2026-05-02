@@ -103,9 +103,9 @@ jobs:
 
 | Name | Description |
 |------|-------------|
-| `exit-code` | Exit code from stac-check (0=valid, non-zero=issues) |
-| `log-path` | Path to captured stac-check stdout/stderr (always set; unique per invocation) |
-| `valid` | `true` if stac-check output contained no failure markers, else `false` |
+| `valid` | **Authoritative validation result.** `true` if no failure markers found in stac-check output, else `false`. Use this to branch on validation success. |
+| `exit-code` | Raw stac-check CLI exit code. **Not authoritative** in recursive mode — stac-check often returns `0` even when recursive validation fails. Prefer `valid`. |
+| `log-path` | Path to captured stac-check stdout/stderr. Created before input validation, so available even on early-exit errors. |
 
 ## Example: PR Comment
 

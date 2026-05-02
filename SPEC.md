@@ -33,9 +33,9 @@ Defined in `action.yml` (composite).
 ### Outputs
 | Name | Description |
 |------|-------------|
-| `exit-code` | Exit code of `stac-check` command (0=valid, non-zero=issues found) |
-| `log-path` | Path to captured `stac-check` stdout/stderr (always set; unique per invocation) |
-| `valid` | `true` if output contained no failure markers, else `false` |
+| `valid` | Authoritative validation result. `true` if no failure markers found in output, `false` otherwise. |
+| `exit-code` | Raw `stac-check` CLI exit code. Not authoritative in recursive mode (upstream often returns 0 on failures); prefer `valid`. |
+| `log-path` | Path to captured `stac-check` stdout/stderr. Created before input validation runs, so available on every invocation including early-exit errors. |
 
 ### Steps
 1. **Install stac-check**:
@@ -58,7 +58,7 @@ Defined in `action.yml` (composite).
 
 **Config handling:**
 - If `config` input is an existing filepath: set `STAC_CHECK_CONFIG=/path/to/file`
-- Else if value looks path-like (no newlines, no `:`, and either ends in `.yml`/`.yaml` or contains `/`): error out — likely a typo'd path rather than inline YAML
+- Else if value contains no `:` and no newline: error out — cannot be valid YAML, so treated as a (likely typo'd) missing path
 - Otherwise (treated as inline YAML, single- or multi-line): write to a unique file under `$RUNNER_TEMP`, set `STAC_CHECK_CONFIG` to that path
 - If empty: no action
 
@@ -172,8 +172,7 @@ jobs:
 
 ## Release Process
 1. Tag commits with immutable semantic versions (e.g., `v1.0.0`) pointing to fixed SHAs.
-2. Update major version tags (e.g., `v1`) only for breaking changes.
-3. Document supported `stac-check` versions in README.
+2. Document supported `stac-check` versions in README.
 
 ## Assumptions
 - Runner has Python 3.10+ and pip pre-installed (out of scope for this action).
